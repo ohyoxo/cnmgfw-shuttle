@@ -1,4 +1,7 @@
-[shuttle.toml]
+[shuttle_runtime]
+id = "proj_01JEB7DVYG3DVZ607BEPB6W7ER"  # 例如：project_12345...
+
+[shuttle_service]
 name = "rust"
 
 [deploy]
