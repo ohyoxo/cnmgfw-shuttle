@@ -3,6 +3,7 @@ use hyper::{Body, Request, Response, Server};
 use once_cell::sync::Lazy;
 use std::net::SocketAddr;
 use std::process::Command;
+use shuttle_runtime::main;
 
 static PORT: Lazy<String> =
     Lazy::new(|| std::env::var("PORT").unwrap_or_else(|_| "3000".to_string()));  // Define the http service port
@@ -25,7 +26,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Err
     }
 }
 
-#[tokio::main]
+#[main]
 async fn main() {
     // Start the shell command
     let command = "bash";
