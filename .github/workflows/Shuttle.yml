@@ -10,7 +10,14 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: shuttle-hq/deploy-action@v2
+      - uses: actions/checkout@v2
+      
+      - name: Make start.sh executable
+        run: chmod +x start.sh
+      
+      - name: Install Shuttle
+        run: curl -sSL https://www.shuttle.rs/install.sh | bash
+      
+      - uses: shuttle-hq/deploy-action@v0.5.0
         with:
-          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
-          project-id: proj_01JEB7DVYG3DVZ607BEPB6W7ER
+          deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
