@@ -21,7 +21,7 @@ jobs:
         run: chmod +x start.sh
           
       - name: Deploy to Shuttle
-        uses: shuttle-hq/deploy-action@v0.3.0
+        uses: shuttle-hq/deploy-action@main
         with:
           deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
           project-id: proj_01JEB7DVYG3DVZ607BEPB6W7ER
