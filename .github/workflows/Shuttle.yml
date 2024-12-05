@@ -1,28 +1,16 @@
-name: Shuttle Deploy
+name: Deploy to Shuttle
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: shuttle-hq/deploy-action@main
         with:
-          toolchain: stable
-          
-      - name: Make start.sh executable
-        run: chmod +x start.sh
-          
-      - name: Deploy to Shuttle
-        uses: shuttle-hq/deploy-action@main
-        with:
-          deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
-          name: "rust"  # 项目名称
-          allow-dirty: true
+          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
+          project-id: ${{ secrets.SHUTTLE_PROJECT_ID }}
