@@ -10,8 +10,13 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          
       - name: Make start.sh executable
         run: chmod +x start.sh
       
@@ -21,3 +26,4 @@ jobs:
       - uses: shuttle-hq/deploy-action@v2
         with:
           shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
+          project-id: ${{ secrets.SHUTTLE_PROJECT_ID }}
