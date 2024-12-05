@@ -24,4 +24,5 @@ jobs:
         uses: shuttle-hq/deploy-action@main
         with:
           deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
-          project-id: proj_01JEB7DVYG3DVZ607BEPB6W7ER
+          name: "rust"  # 项目名称
+          allow-dirty: true
