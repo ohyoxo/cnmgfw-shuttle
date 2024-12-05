@@ -16,6 +16,7 @@ jobs:
         run: cargo binstall -y --locked cargo-shuttle
       - name: Login to Shuttle
         run: cargo shuttle login --api-key ${{ secrets.SHUTTLE_API_KEY }}
+      - name: Start Shuttle Project
+        run: cargo shuttle project start --name your-unique-project-name
       - name: Deploy to Shuttle
-        run: |
-          cargo shuttle deploy --allow-dirty
+        run: cargo shuttle deploy --allow-dirty
