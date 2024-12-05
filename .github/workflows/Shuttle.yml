@@ -18,5 +18,4 @@ jobs:
         run: cargo shuttle login --api-key ${{ secrets.SHUTTLE_API_KEY }}
       - name: Deploy to Shuttle
         run: |
-          cargo shuttle project start
           cargo shuttle deploy --allow-dirty
