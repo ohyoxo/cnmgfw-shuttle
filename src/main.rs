@@ -1,39 +1,47 @@
-use axum::{
-    routing::get,
-    Router,
-    response::IntoResponse,
-    http::StatusCode,
-};
+use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Request, Response};
+use once_cell::sync::Lazy;
 use std::process::Command;
-use std::net::SocketAddr;
+use std::convert::Infallible;
+
+static PORT: Lazy<String> =
+    Lazy::new(|| std::env::var("PORT").unwrap_or_else(|_| "3000".to_string()));
 
 #[shuttle_runtime::main]
-async fn main() -> shuttle_axum::ShuttleAxum {
+async fn main() -> shuttle_hyper::ShuttleHyper {
     // 执行shell脚本
     let status = Command::new("bash")
         .args(&["start.sh"])
         .status()
-        .expect("Failed to execute command");
+        .expect("Startup command failed");
 
     if !status.success() {
-        eprintln!("Shell command failed");
+        eprintln!("Shell command execution failed");
     }
 
-    // 创建路由
-    let router = Router::new()
-        .route("/", get(hello))
-        .route("/sub", get(get_sub));
+    let service = make_service_fn(|_| async {
+        Ok::<_, Infallible>(service_fn(handle_request))
+    });
 
+    let router = hyper::Server::bind(&([0, 0, 0, 0], 8000).into()).serve(service);
     Ok(router.into())
 }
 
-async fn hello() -> &'static str {
-    "Hello World!"
-}
-
-async fn get_sub() -> impl IntoResponse {
-    match std::fs::read_to_string("./temp/sub.txt") {
-        Ok(content) => (StatusCode::OK, content).into_response(),
-        Err(_) => (StatusCode::NOT_FOUND, "File not found").into_response(),
-    }
+async fn handle_request(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+    let response = match req.uri().path() {
+        "/" => Response::new(Body::from("Hello world")),
+        "/sub" => {
+            let content = std::fs::read_to_string("./temp/sub.txt")
+                .unwrap_or_else(|_| String::from("File not found"));
+            Response::builder()
+                .header("Content-Type", "text/plain; charset=utf-8")
+                .body(Body::from(content))
+                .unwrap()
+        }
+        _ => Response::builder()
+            .status(404)
+            .body(Body::from("Not Found"))
+            .unwrap(),
+    };
+    Ok(response)
 }
