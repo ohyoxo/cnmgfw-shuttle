@@ -17,6 +17,6 @@ jobs:
           toolchain: stable
           
       - name: Deploy to Shuttle
-        uses: shuttle-hq/deploy-action@v0.8.0  # 更新到最新的版本
+        uses: shuttle-hq/deploy-action@v0.4.0  # 修改为正确的版本
         with:
           deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
