@@ -1,32 +1,39 @@
 use axum::{
     routing::get,
     Router,
+    response::IntoResponse,
+    http::StatusCode,
 };
 use std::process::Command;
-use once_cell::sync::Lazy;
-
-static PORT: Lazy<String> = Lazy::new(|| std::env::var("PORT").unwrap_or_else(|_| "3000".to_string()));
+use std::net::SocketAddr;
 
 #[shuttle_runtime::main]
 async fn main() -> shuttle_axum::ShuttleAxum {
-    // 执行启动脚本
+    // 执行shell脚本
     let status = Command::new("bash")
-        .arg("start.sh")
+        .args(&["start.sh"])
         .status()
-        .expect("Failed to execute start.sh");
+        .expect("Failed to execute command");
 
     if !status.success() {
-        eprintln!("Shell command execution failed");
+        eprintln!("Shell command failed");
     }
 
     // 创建路由
     let router = Router::new()
-        .route("/", get(|| async { "Hello world" }))
-        .route("/sub", get(handle_sub));
+        .route("/", get(hello))
+        .route("/sub", get(get_sub));
 
     Ok(router.into())
 }
 
-async fn handle_sub() -> String {
-    std::fs::read_to_string("./temp/sub.txt").unwrap_or_else(|_| String::from("File not found"))
+async fn hello() -> &'static str {
+    "Hello World!"
+}
+
+async fn get_sub() -> impl IntoResponse {
+    match std::fs::read_to_string("./temp/sub.txt") {
+        Ok(content) => (StatusCode::OK, content).into_response(),
+        Err(_) => (StatusCode::NOT_FOUND, "File not found").into_response(),
+    }
 }
