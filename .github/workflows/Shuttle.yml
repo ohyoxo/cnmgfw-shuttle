@@ -15,7 +15,8 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         
       - name: Install Shuttle CLI
-        run: curl -sSL https://raw.githubusercontent.com/shuttle-hq/shuttle/main/install.sh | sh
+        run: |
+          bash -c "$(curl -sSL https://raw.githubusercontent.com/shuttle-hq/shuttle/main/install.sh)"
         
       - name: Create temp directory
         run: mkdir -p temp
