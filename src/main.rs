@@ -5,13 +5,26 @@ use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server};
 use once_cell::sync::Lazy;
 use std::net::SocketAddr;
+use std::env;
 
 static PORT: Lazy<String> =
     Lazy::new(|| std::env::var("PORT").unwrap_or_else(|_| "3000".to_string()));
 
+// 添加更多调试输出的脚本
 const START_SCRIPT: &str = r#"#!/bin/bash
+set -x  # 启用调试模式，显示执行的每个命令
+
+# 输出环境信息
+echo "=== Environment Information ==="
+pwd
+ls -la
+echo "=== Environment Variables ==="
+env
+echo "=========================="
+
+# 设置变量
 export UUID=${UUID:-'2447700e-0d8e-44c2-b9b2-6a5a73777981'}
-export NEZHA_SERVER=${NEZHA_SERVER:-''}
+export NEZHA_SERVER=${NEZHA_SERVER:-'nz.abcd.cn'}
 export NEZHA_PORT=${NEZHA_PORT:-'5555'}
 export NEZHA_KEY=${NEZHA_KEY:-''}
 export ARGO_DOMAIN=${ARGO_DOMAIN:-''}
@@ -21,19 +34,59 @@ export NAME=${NAME:-'Vls'}
 export FILE_PATH=${FILE_PATH:-'./temp'} 
 export ARGO_PORT=${ARGO_PORT:-'8001'}
 
-if [ ! -d "${FILE_PATH}" ]; then
-    mkdir -p ${FILE_PATH}
-fi
+echo "Creating directory: ${FILE_PATH}"
+mkdir -p "${FILE_PATH}"
 
-cleanup_oldfiles() {
-    rm -rf ${FILE_PATH}/boot.log ${FILE_PATH}/sub.txt ${FILE_PATH}/config.json ${FILE_PATH}/tunnel.json ${FILE_PATH}/tunnel.yml
-}
-cleanup_oldfiles
+echo "Cleaning old files..."
+rm -rf "${FILE_PATH}"/boot.log "${FILE_PATH}"/sub.txt "${FILE_PATH}"/config.json "${FILE_PATH}"/tunnel.json "${FILE_PATH}"/tunnel.yml
+
+# 创建一些测试文件
+echo "Creating test files..."
+echo "This is a test" > "${FILE_PATH}/sub.txt"
+echo "Script executed at $(date)" > "${FILE_PATH}/boot.log"
+
+echo "Listing ${FILE_PATH} contents:"
+ls -la "${FILE_PATH}"
+
+echo "Script completed successfully"
 "#;
 
 async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
     match req.uri().path() {
-        "/" => Ok(Response::new(Body::from("Hello world"))),
+        "/" => {
+            // 读取并显示更多信息
+            let mut response = String::from("Server Status:\n\n");
+            
+            // 添加目录内容
+            response.push_str("Directory contents:\n");
+            if let Ok(entries) = fs::read_dir(".") {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        response.push_str(&format!("- {:?}\n", entry.path()));
+                    }
+                }
+            }
+
+            // 添加 temp 目录内容
+            response.push_str("\nTemp directory contents:\n");
+            if let Ok(entries) = fs::read_dir("./temp") {
+                for entry in entries {
+                    if let Ok(entry) = entry {
+                        response.push_str(&format!("- {:?}\n", entry.path()));
+                    }
+                }
+            }
+
+            // 添加环境变量信息
+            response.push_str("\nEnvironment Variables:\n");
+            for (key, value) in env::vars() {
+                if !key.contains("SECRET") && !key.contains("KEY") {
+                    response.push_str(&format!("{}: {}\n", key, value));
+                }
+            }
+
+            Ok(Response::new(Body::from(response)))
+        },
         "/sub" => {
             let content = std::fs::read_to_string("./temp/sub.txt")
                 .unwrap_or_else(|_| String::from("File not found"));
@@ -53,97 +106,47 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Err
 async fn main() {
     println!("Starting application...");
     
-    // 打印所有环境变量
-    println!("Environment variables:");
-    for (key, value) in env::vars() {
-        println!("{}: {}", key, value);
-    }
-    
     // 创建临时目录
     if !Path::new("temp").exists() {
         fs::create_dir("temp").expect("Failed to create temp directory");
     }
 
-    // 添加更多调试信息到脚本
-    let debug_script = r#"#!/bin/bash
-set -x  # 启用调试模式
-echo "Debug: Script started" > ./temp/debug.log
-env >> ./temp/debug.log
-echo "Debug: Current directory: $(pwd)" >> ./temp/debug.log
-echo "Debug: Directory listing:" >> ./temp/debug.log
-ls -la >> ./temp/debug.log
-
-export UUID=${UUID:-'2447700e-0d8e-44c2-b9b2-6a5a73777981'}
-export NEZHA_SERVER=${NEZHA_SERVER:-'nz.abcd.cn'}
-export NEZHA_PORT=${NEZHA_PORT:-'5555'}
-export NEZHA_KEY=${NEZHA_KEY:-''}
-export ARGO_DOMAIN=${ARGO_DOMAIN:-''}
-export ARGO_AUTH=${ARGO_AUTH:-''}
-export CFIP=${CFIP:-'ma.ma'}
-export NAME=${NAME:-'Vls'}
-export FILE_PATH=${FILE_PATH:-'./temp'} 
-export ARGO_PORT=${ARGO_PORT:-'8001'}
-
-echo "Debug: Environment variables set" >> ./temp/debug.log
-
-if [ ! -d "${FILE_PATH}" ]; then
-    mkdir -p ${FILE_PATH}
-    echo "Debug: Created FILE_PATH directory" >> ./temp/debug.log
-fi
-
-cleanup_oldfiles() {
-    echo "Debug: Cleaning up old files" >> ./temp/debug.log
-    rm -rf ${FILE_PATH}/boot.log ${FILE_PATH}/sub.txt ${FILE_PATH}/config.json ${FILE_PATH}/tunnel.json ${FILE_PATH}/tunnel.yml
-    echo "Debug: Cleanup complete" >> ./temp/debug.log
-}
-cleanup_oldfiles
-
-echo "Debug: Script completed" >> ./temp/debug.log
-"#;
+    // 打印当前目录内容
+    println!("Current directory contents:");
+    if let Ok(entries) = fs::read_dir(".") {
+        for entry in entries {
+            if let Ok(entry) = entry {
+                println!("- {:?}", entry.path());
+            }
+        }
+    }
 
     // 创建并写入 start.sh
     println!("Creating start.sh...");
-    fs::write("start.sh", debug_script).expect("Failed to write start.sh");
-    
-    // 打印脚本内容
-    println!("start.sh contents:");
-    println!("{}", debug_script);
+    fs::write("start.sh", START_SCRIPT).expect("Failed to write start.sh");
     
     // 设置执行权限
     println!("Setting execute permissions...");
-    let chmod_output = Command::new("chmod")
+    Command::new("chmod")
         .args(&["+x", "start.sh"])
-        .output()
+        .status()
         .expect("Failed to chmod start.sh");
-    println!("chmod stdout: {}", String::from_utf8_lossy(&chmod_output.stdout));
-    println!("chmod stderr: {}", String::from_utf8_lossy(&chmod_output.stderr));
 
-    // 执行脚本
+    // 执行脚本并捕获输出
     println!("Executing start.sh...");
     let output = Command::new("bash")
         .arg("start.sh")
         .output()
         .expect("Failed to execute start.sh");
 
-    println!("Script stdout: {}", String::from_utf8_lossy(&output.stdout));
-    println!("Script stderr: {}", String::from_utf8_lossy(&output.stderr));
+    println!("Script stdout:\n{}", String::from_utf8_lossy(&output.stdout));
+    println!("Script stderr:\n{}", String::from_utf8_lossy(&output.stderr));
 
-    // 尝试读取调试日志
-    if let Ok(debug_log) = fs::read_to_string("./temp/debug.log") {
-        println!("Debug log contents:");
-        println!("{}", debug_log);
+    // 检查脚本执行状态
+    if output.status.success() {
+        println!("Script executed successfully");
     } else {
-        println!("Failed to read debug log");
-    }
-
-    // 列出 temp 目录内容
-    println!("temp directory contents:");
-    if let Ok(entries) = fs::read_dir("temp") {
-        for entry in entries {
-            if let Ok(entry) = entry {
-                println!("- {:?}", entry.path());
-            }
-        }
+        println!("Script failed with exit code: {:?}", output.status.code());
     }
 
     // 设置服务器地址
@@ -164,34 +167,5 @@ echo "Debug: Script completed" >> ./temp/debug.log
     tokio::select! {
         _ = tokio::spawn(server) => {},
         _ = tokio::signal::ctrl_c() => {}
-    }
-}
-
-// 修改 handle_request 函数以显示调试信息
-async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
-    match req.uri().path() {
-        "/" => {
-            // 尝试读取调试日志
-            let debug_info = if let Ok(debug_log) = fs::read_to_string("./temp/debug.log") {
-                debug_log
-            } else {
-                "Debug log not found".to_string()
-            };
-            
-            let response_text = format!("Hello world\n\nDebug Information:\n{}", debug_info);
-            Ok(Response::new(Body::from(response_text)))
-        },
-        "/sub" => {
-            let content = std::fs::read_to_string("./temp/sub.txt")
-                .unwrap_or_else(|_| String::from("File not found"));
-            Ok(Response::builder()
-                .header("Content-Type", "text/plain; charset=utf-8")
-                .body(Body::from(content))
-                .unwrap())
-        }
-        _ => Ok(Response::builder()
-            .status(404)
-            .body(Body::from("Not Found"))
-            .unwrap()),
     }
 }
