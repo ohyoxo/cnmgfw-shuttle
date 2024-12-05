@@ -1,12 +1,16 @@
 [package]
 name = "rust"
-version = "0.1.0"
+version = "1.6.0"
+authors = ["eooce"]
 edition = "2021"
 
 [dependencies]
-shuttle-runtime = "0.34.0"
-shuttle-axum = "0.34.0"
-tokio = { version = "1.0", features = ["full"] }
-hyper = { version = "0.14.9", features = ["full"] }
 once_cell = "1.19.0"
-axum = "0.7.1"
+hyper = { version = "0.14.9", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
+shuttle-runtime = "0.34.0"
+shuttle-hyper = "0.34.0"
+
+[[bin]]
+name = "rust"
+path = "main.rs"
