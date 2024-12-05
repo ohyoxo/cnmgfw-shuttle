@@ -1,14 +1,14 @@
 #!/bin/bash
-export UUID=${UUID:-'2447700e-0d8e-44c2-b9b2-6a5a73777981'}
-export NEZHA_SERVER=${NEZHA_SERVER:-'nz.abcd.cn'}   # 哪吒三个变量不全不运行
-export NEZHA_PORT=${NEZHA_PORT:-'5555'}            # 哪吒端口为{443,8443,2096,2087,2083,2096}时开启tls
+export UUID=${UUID:-'187c2ffd-250f-4e15-86f0-e5fada76143e'}
+export NEZHA_SERVER=${NEZHA_SERVER:-''}   # 
+export NEZHA_PORT=${NEZHA_PORT:-'5555'}            # 
 export NEZHA_KEY=${NEZHA_KEY:-''}
 export ARGO_DOMAIN=${ARGO_DOMAIN:-''}
 export ARGO_AUTH=${ARGO_AUTH:-''}
 export CFIP=${CFIP:-'ma.ma'}
-export NAME=${NAME:-'Vls'}
+export NAME=${NAME:-'shuttle'}
 export FILE_PATH=${FILE_PATH:-'./temp'} 
-export ARGO_PORT=${ARGO_PORT:-'8001'}  # argo隧道端口，若使用固定隧道token需和CF后台设置的端口与这里对应
+export ARGO_PORT=${ARGO_PORT:-'8001'}  # 
 
 if [ ! -d "${FILE_PATH}" ]; then
     mkdir ${FILE_PATH}
