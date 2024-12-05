@@ -1,28 +1,16 @@
-name: Deploy to Shuttle
+name: Shuttle Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        
-      - name: Install Shuttle CLI
-        run: |
-          cargo install cargo-shuttle
-        
-      - name: Create temp directory
-        run: mkdir -p temp
-        
-      - name: Deploy to Shuttle
-        run: |
-          cargo shuttle deploy --allow-dirty
-        env:
-          SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}
+      - uses: shuttle-hq/deploy-action@v2
+        with:
+          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
+          project-id: proj_01JEB7DVYG3DVZ607BEPB6W7ER
