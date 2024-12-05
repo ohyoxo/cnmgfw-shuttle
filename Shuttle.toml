@@ -1,5 +1,4 @@
 name = "myapp"  # 替换成你想要的项目名称
 assets = [
-    "./start.sh",
     "./temp/*"
 ]
