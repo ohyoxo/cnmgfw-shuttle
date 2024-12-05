@@ -26,7 +26,7 @@ async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Err
     }
 }
 
-#[main]
+#[tokio::main]
 async fn main() {
     // Start the shell command
     let command = "bash";
