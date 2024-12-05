@@ -1,4 +1,5 @@
-name = "rust"  # 替换成你想要的项目名称
-assets = [
-    "./temp/*"
-]
+[shuttle.toml]
+name = "rust"
+
+[deploy]
+include = ["start.sh"]
