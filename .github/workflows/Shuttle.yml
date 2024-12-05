@@ -16,10 +16,7 @@ jobs:
         
       - name: Install Shuttle CLI
         run: |
-          curl -sSL https://github.com/shuttle-hq/shuttle/releases/latest/download/shuttle-x86_64-unknown-linux-gnu.tar.gz -o shuttle.tar.gz
-          tar -xzf shuttle.tar.gz
-          sudo mv shuttle /usr/local/bin/shuttle
-          rm shuttle.tar.gz
+          cargo install cargo-shuttle
         
       - name: Create temp directory
         run: mkdir -p temp
