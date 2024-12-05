@@ -1,5 +1,5 @@
 [package]
-name = "rust"
+name = "myapp"
 version = "1.6.0"
 authors = ["eooce"]
 edition = "2021"
