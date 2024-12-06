@@ -5,12 +5,16 @@ authors = ["eooce"]
 edition = "2021"
 
 [dependencies]
+shuttle-runtime = "0.48.0"  # 确保使用最新版本
 once_cell = "1.19.0"
 hyper = { version = "0.14.9", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
-shuttle-runtime = "0.48.0"
-shuttle-axum = "0.48.0"
-axum = "0.7.4"
+
+[features]
+default = ["foo"]
+shuttle = ["bar"]
+foo = []
+bar = []
 
 [[bin]]
 name = "rust"
