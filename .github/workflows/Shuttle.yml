@@ -11,12 +11,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Setup project files
+        run: |
+          mkdir -p temp
+          chmod +x start.sh
+      
       - uses: shuttle-hq/deploy-action@v0.4.0
         with:
-          # 你需要在 GitHub Secrets 中设置这个值
           shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
-          # 你需要在 Shuttle 控制台创建项目并获取 ID
           project-id: ${{ secrets.SHUTTLE_PROJECT_ID }}
-          # 如果有 secrets 需要设置
-          secrets: |
-            PORT = '3000'
+          working-directory: "."
+          cargo-shuttle-version: "0.39.0"
