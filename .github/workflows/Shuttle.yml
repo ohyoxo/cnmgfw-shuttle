@@ -2,15 +2,32 @@ name: Shuttle Deploy
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: shuttle-hq/deploy-action@v2
+      - uses: actions/checkout@v3
+      
+      - uses: actions/cache@v3
         with:
-          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
-          project-id: proj_01JEBWHVC6NGKDBE9E5PZJJNGP
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Install Shuttle
+        run: curl -sSfL https://www.shuttle.rs/install | bash
+
+      - name: Deploy to Shuttle
+        run: cargo shuttle deploy --allow-dirty
+        env:
+          SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}
