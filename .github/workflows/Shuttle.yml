@@ -11,23 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - uses: actions/cache@v3
+      - uses: shuttle-hq/deploy-action@v0.4.0
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        
-      - name: Install Shuttle
-        run: curl -sSfL https://www.shuttle.rs/install | bash
-
-      - name: Deploy to Shuttle
-        run: cargo shuttle deploy --allow-dirty
-        env:
-          SHUTTLE_API_KEY: ${{ secrets.SHUTTLE_API_KEY }}
+          # 你需要在 GitHub Secrets 中设置这个值
+          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
+          # 你需要在 Shuttle 控制台创建项目并获取 ID
+          project-id: ${{ secrets.SHUTTLE_PROJECT_ID }}
+          # 如果有 secrets 需要设置
+          secrets: |
+            PORT = '3000'
