@@ -1,5 +1,10 @@
 [deploy]
-include = ["temp/*", "start.sh"]
+include = [
+  "start.sh",  # 包含start.sh脚本
+  "temp/*",    # 包含temp目录下的所有文件
+]
 
 [build]
-assets = ["temp/*"]
+assets = [
+  "static/*",  # 包含所有静态文件
+]
