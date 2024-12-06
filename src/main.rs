@@ -1,42 +1,60 @@
-use axum::{
-    routing::get,
-    Router,
-};
-use std::process::Command;
+use shuttle_runtime::main as shuttle_main;
+use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Request, Response, Server};
 use once_cell::sync::Lazy;
+use std::net::SocketAddr;
+use std::process::Command;
 
 static PORT: Lazy<String> =
     Lazy::new(|| std::env::var("PORT").unwrap_or_else(|_| "3000".to_string()));
 
-#[shuttle_runtime::main]
-async fn main() -> shuttle_axum::ShuttleAxum {
-    // 启动 shell 命令
+async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
+    match req.uri().path() {
+        "/" => Ok(Response::new(Body::from("Hello world"))),
+        "/sub" => {
+            let content = std::fs::read_to_string("./temp/sub.txt")
+                .unwrap_or_else(|_| String::from("File not found"));
+            Ok(Response::builder()
+                .header("Content-Type", "text/plain; charset=utf-8")
+                .body(Body::from(content))
+                .unwrap())
+        }
+        _ => Ok(Response::builder()
+            .status(404)
+            .body(Body::from("Not Found"))
+            .unwrap()),
+    }
+}
+
+#[shuttle_main]
+async fn main() {
     let command = "bash";
     let args = &["start.sh"];
     let mut child = Command::new(command)
         .args(args)
         .spawn()
-        .expect("启动命令失败");
+        .expect("Startup command failed");
 
-    // 等待 shell 命令完成
-    let status = child.wait().expect("等待子进程失败");
+    let status = child.wait().expect("Wait for child process failure");
     if !status.success() {
-        eprintln!("Shell 命令执行失败，请重启服务器");
+        eprintln!("Shell command execution failed, please restart server");
         std::process::exit(1);
     }
 
-    println!("服务器运行在端口 {}", *PORT);
-    println!("感谢使用此脚本，祝您使用愉快！");
+    let addr: SocketAddr = format!("0.0.0.0:{}", *PORT)
+        .parse()
+        .expect("Invalid address");
 
-    // 设置路由
-    let router = Router::new()
-        .route("/", get(|| async { "Hello World!" }))
-        .route("/sub", get(handle_sub));
+    let make_svc =
+        make_service_fn(|_conn| async { Ok::<_, hyper::Error>(service_fn(handle_request)) });
 
-    Ok(router.into())
-}
+    let server = Server::bind(&addr).serve(make_svc);
 
-async fn handle_sub() -> String {
-    std::fs::read_to_string("./temp/sub.txt")
-        .unwrap_or_else(|_| String::from("File not found"))
+    println!("Server is running on http://{}", addr);
+    println!("Thank you for using this script, enjoy!");
+
+    tokio::select! {
+        _ = tokio::spawn(server) => {},
+        _ = tokio::signal::ctrl_c() => {}
+    }
 }
