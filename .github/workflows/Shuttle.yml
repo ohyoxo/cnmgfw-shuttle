@@ -1,4 +1,4 @@
-name: Shuttle Deploy
+name: Deploy to Shuttle
 
 on:
   push:
@@ -11,33 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        
-      - name: Cache cargo registry
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          
-      - name: Setup project files
-        run: |
-          mkdir -p temp
-          chmod +x start.sh
-          
-      - name: Install cargo-shuttle
-        run: |
-          cargo install cargo-shuttle --version 0.39.0
-          
-      - name: Login to shuttle
-        run: |
-          cargo shuttle login --api-key ${{ secrets.SHUTTLE_API_KEY }}
+      - name: Make start.sh executable
+        run: chmod +x start.sh
       
-      - uses: shuttle-hq/deploy-action@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
         with:
-          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
+          toolchain: stable
+          
+      - uses: shuttle-hq/deploy-action@v0.4.0
+        with:
+          deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
           project-id: ${{ secrets.SHUTTLE_PROJECT_ID }}
           working-directory: "."
-          cargo-shuttle-version: "0.39.0"
+          allow-dirty: true
+          no-test: true
