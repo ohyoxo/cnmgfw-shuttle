@@ -18,10 +18,12 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          
+
+      # 使用官方推荐的 deploy-action
       - uses: shuttle-hq/deploy-action@v2
         with:
-          deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
+          # 注意这里的参数名称改变
+          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
           project-id: ${{ secrets.SHUTTLE_PROJECT_ID }}
           working-directory: "."
           allow-dirty: true
