@@ -1,10 +1,6 @@
-[deploy]
-include = [
-  "start.sh",  # 包含start.sh脚本
-  "temp/*",    # 包含temp目录下的所有文件
-]
-
+[shuttle]
+name = "rust"
 [build]
-assets = [
-  "static/*",  # 包含所有静态文件
+include = [
+    "temp/sub.txt"
 ]
