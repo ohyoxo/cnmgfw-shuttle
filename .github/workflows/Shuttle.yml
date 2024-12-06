@@ -10,13 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install cargo-binstall
-        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-      - name: Install cargo-shuttle
-        run: cargo binstall -y --locked cargo-shuttle
-      - name: Login to Shuttle
-        run: cargo shuttle login --api-key ${{ secrets.SHUTTLE_API_KEY }}
-      - name: Start Shuttle Project
-        run: cargo shuttle project start --name rust
-      - name: Deploy to Shuttle
-        run: cargo shuttle deploy --allow-dirty
+      - uses: shuttle-hq/deploy-action@main
+        with:
+          deploy-key: ${{ secrets.SHUTTLE_API_KEY }}  # 使用 deploy-key 替代 shuttle-api-key
+          working-directory: "."  # 可选，默认为 "."
+          allow-dirty: true      # 允许未提交的更改
+          name: "rust"  # 替换为你的项目名称
