@@ -19,7 +19,7 @@ jobs:
         with:
           toolchain: stable
           
-      - uses: shuttle-hq/deploy-action@v0.4.0
+      - uses: shuttle-hq/deploy-action@v2
         with:
           deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
           project-id: ${{ secrets.SHUTTLE_PROJECT_ID }}
