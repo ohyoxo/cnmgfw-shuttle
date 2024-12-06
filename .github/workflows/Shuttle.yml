@@ -17,6 +17,6 @@ jobs:
       - name: Login to Shuttle
         run: cargo shuttle login --api-key ${{ secrets.SHUTTLE_API_KEY }}
       - name: Start Shuttle Project
-        run: cargo shuttle project start --name your-unique-project-name
+        run: cargo shuttle project start --name rust
       - name: Deploy to Shuttle
         run: cargo shuttle deploy --allow-dirty
