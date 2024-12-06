@@ -5,8 +5,8 @@ authors = ["eooce"]
 edition = "2021"
 
 [dependencies]
-shuttle-runtime = "0.39.0"
-shuttle-axum = "0.39.0"
+shuttle-runtime = "0.40.0"
+shuttle-axum = "0.40.0"
 axum = "0.7.1"
 tokio = { version = "1.0", features = ["full"] }
 once_cell = "1.19.0"
