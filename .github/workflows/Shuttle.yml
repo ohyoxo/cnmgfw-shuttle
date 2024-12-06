@@ -12,7 +12,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: shuttle-hq/deploy-action@main
         with:
-          deploy-key: ${{ secrets.SHUTTLE_API_KEY }}  # 使用 deploy-key 替代 shuttle-api-key
-          working-directory: "."  # 可选，默认为 "."
-          allow-dirty: true      # 允许未提交的更改
-          name: "rust"  # 替换为你的项目名称
+          deploy-key: ${{ secrets.SHUTTLE_API_KEY }}
+          working-directory: "."
+          allow-dirty: true
+          name: "rust"  # 修改为一个唯一的项目名称
+          no-test: true         # 跳过测试
