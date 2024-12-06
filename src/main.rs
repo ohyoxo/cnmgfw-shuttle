@@ -1,60 +1,64 @@
-use shuttle_runtime::main as shuttle_main;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request, Response, Server};
+use axum::{
+    routing::get,
+    Router,
+    response::IntoResponse,
+    http::StatusCode,
+    body::Body,
+};
 use once_cell::sync::Lazy;
-use std::net::SocketAddr;
-use std::process::Command;
+use std::{
+    net::SocketAddr,
+    process::Command,
+    path::PathBuf,
+    fs,
+};
+use tokio::process::Command as TokioCommand;
 
-static PORT: Lazy<String> =
-    Lazy::new(|| std::env::var("PORT").unwrap_or_else(|_| "3000".to_string()));
+static PORT: Lazy<String> = Lazy::new(|| std::env::var("PORT").unwrap_or_else(|_| "3000".to_string()));
 
-async fn handle_request(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
-    match req.uri().path() {
-        "/" => Ok(Response::new(Body::from("Hello world"))),
-        "/sub" => {
-            let content = std::fs::read_to_string("./temp/sub.txt")
-                .unwrap_or_else(|_| String::from("File not found"));
-            Ok(Response::builder()
-                .header("Content-Type", "text/plain; charset=utf-8")
-                .body(Body::from(content))
-                .unwrap())
+#[shuttle_runtime::main]
+async fn main() -> shuttle_axum::ShuttleAxum {
+    // Start the shell command in a separate thread
+    tokio::spawn(async {
+        let status = TokioCommand::new("bash")
+            .args(&["start.sh"])
+            .status()
+            .await;
+
+        match status {
+            Ok(exit_status) => {
+                if !exit_status.success() {
+                    eprintln!("Shell command execution failed, please restart server");
+                }
+            }
+            Err(e) => eprintln!("Failed to execute command: {}", e),
         }
-        _ => Ok(Response::builder()
-            .status(404)
-            .body(Body::from("Not Found"))
-            .unwrap()),
-    }
-}
+    });
 
-#[shuttle_main]
-async fn main() {
-    let command = "bash";
-    let args = &["start.sh"];
-    let mut child = Command::new(command)
-        .args(args)
-        .spawn()
-        .expect("Startup command failed");
+    // Create the router with our routes
+    let app = Router::new()
+        .route("/", get(hello_world))
+        .route("/sub", get(get_sub));
 
-    let status = child.wait().expect("Wait for child process failure");
-    if !status.success() {
-        eprintln!("Shell command execution failed, please restart server");
-        std::process::exit(1);
-    }
-
+    // Get the address to bind to
     let addr: SocketAddr = format!("0.0.0.0:{}", *PORT)
         .parse()
         .expect("Invalid address");
 
-    let make_svc =
-        make_service_fn(|_conn| async { Ok::<_, hyper::Error>(service_fn(handle_request)) });
-
-    let server = Server::bind(&addr).serve(make_svc);
-
     println!("Server is running on http://{}", addr);
     println!("Thank you for using this script, enjoy!");
 
-    tokio::select! {
-        _ = tokio::spawn(server) => {},
-        _ = tokio::signal::ctrl_c() => {}
+    // Return the router
+    Ok(app.into())
+}
+
+async fn hello_world() -> &'static str {
+    "Hello world"
+}
+
+async fn get_sub() -> impl IntoResponse {
+    match fs::read_to_string("./temp/sub.txt") {
+        Ok(content) => (StatusCode::OK, content).into_response(),
+        Err(_) => (StatusCode::NOT_FOUND, "File not found").into_response(),
     }
 }
