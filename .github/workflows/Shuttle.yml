@@ -11,10 +11,29 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Cache cargo registry
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          
       - name: Setup project files
         run: |
           mkdir -p temp
           chmod +x start.sh
+          
+      - name: Install cargo-shuttle
+        run: |
+          cargo install cargo-shuttle --version 0.39.0
+          
+      - name: Login to shuttle
+        run: |
+          cargo shuttle login --api-key ${{ secrets.SHUTTLE_API_KEY }}
       
       - uses: shuttle-hq/deploy-action@v2
         with:
