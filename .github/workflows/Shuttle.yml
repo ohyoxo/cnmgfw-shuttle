@@ -16,7 +16,7 @@ jobs:
           mkdir -p temp
           chmod +x start.sh
       
-      - uses: shuttle-hq/deploy-action@v0.4.0
+      - uses: shuttle-hq/deploy-action@v2
         with:
           shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
           project-id: ${{ secrets.SHUTTLE_PROJECT_ID }}
