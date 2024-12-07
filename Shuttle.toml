@@ -1,8 +1,5 @@
-[deploy]
-allow_dirty = true
-
 [build]
-assets = [
-  "start.sh",
-  "temp/*"
-]
+assets = ["./temp/*"]
+
+[deploy]
+deny_dirty = false
