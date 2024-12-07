@@ -1,6 +1,8 @@
 [deploy]
-include = [
-    "start.sh",
-    "temp/*",
-    "static/*"
+include = ["start.sh", "temp/*", "static/*"]
+
+[deploy.shuttle]
+workspace = true
+copy_files = [
+    { from = "start.sh", to = "start.sh" },
 ]
