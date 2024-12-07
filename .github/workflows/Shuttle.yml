@@ -1,1 +1,31 @@
+name: Shuttle Deploy
 
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up environment
+        run: |
+          mkdir -p temp
+          mkdir -p static
+          chmod 755 temp
+          chmod 755 static
+          echo "#!/bin/bash" > start.sh
+          cat start.sh.template >> start.sh
+          chmod 755 start.sh
+          
+      - uses: shuttle-hq/deploy-action@v2
+        with:
+          shuttle-api-key: ${{ secrets.SHUTTLE_API_KEY }}
+          project-id: ${{ secrets.SHUTTLE_PROJECT_ID }}
+          working-directory: "."
+          allow-dirty: true
+          no-test: true
