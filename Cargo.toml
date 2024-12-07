@@ -8,9 +8,9 @@ edition = "2021"
 once_cell = "1.19.0"
 hyper = { version = "0.14.9", features = ["full"] }
 tokio = { version = "1", features = ["full"] }
-shuttle-runtime = "0.49.0"
-shuttle-secrets = "0.42.0"
-shuttle-service = { version = "0.49.0", features = ["web-axum"] }
+shuttle-runtime = "0.48.0"
+shuttle-secrets = "0.48.0"
+shuttle-service = { version = "0.48.0", features = ["web-axum"] }
 axum = "0.7.3"
 
 [[bin]]
