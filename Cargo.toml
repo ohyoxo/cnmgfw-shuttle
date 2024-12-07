@@ -2,42 +2,18 @@
 name = "rust"
 version = "0.1.0"
 edition = "2021"
-publish = false
 
 [dependencies]
-axum = { version = "0.7.4", features = ["macros"] }
-hyper = { version = "1.0", features = ["full"] }
-tokio = { version = "1.0", features = ["full"] }
-tower = "0.4"
-tower-http = { version = "0.5", features = ["fs", "trace"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-shuttle-runtime = "0.39.0"
-shuttle-axum = "0.39.0"
-tracing = "0.1"
+shuttle-runtime = "0.49.0"
+shuttle-secrets = "0.49.0"
+tokio = { version = "1.28.2", features = ["full"] }
+hyper = { version = "0.14.27", features = ["full"] }
+axum = "0.6.18"
+tower-http = { version = "0.4.0", features = ["fs", "trace"] }
+tracing = "0.1.37"
+serde = { version = "1.0.163", features = ["derive"] }
+serde_json = "1.0.96"
+base64 = "0.21.0"
 once_cell = "1.19.0"
-base64 = "0.21"
-uuid = { version = "1.7", features = ["v4", "serde"] }
-reqwest = { version = "0.11", features = ["json"] }
-
-[dev-dependencies]
-anyhow = "1.0"
-httpc-test = "0.1.1"
-
-[[bin]]
-name = "rust"
-path = "src/main.rs"
-
-[features]
-default = []
-shuttle = []
-
-[profile.dev]
-opt-level = 1
-
-[profile.release]
-opt-level = 3
-lto = true
-codegen-units = 1
-panic = 'abort'
-strip = true
+reqwest = "0.11.18"
+uuid = { version = "1.3.3", features = ["v4", "serde"] }
