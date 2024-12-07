@@ -1,4 +1,8 @@
-[shuttle]
-name = "rust"
 [deploy]
-deny_dirty = false
+allow_dirty = true
+
+[build]
+assets = [
+  "start.sh",
+  "temp/*"
+]
