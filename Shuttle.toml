@@ -1,8 +1,6 @@
-[shuttle]
-name = "rust"
-
-[build]
+[deploy]
 include = [
     "start.sh",
-    "temp/sub.txt"
+    "temp/*",
+    "static/*"
 ]
