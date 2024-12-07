@@ -8,6 +8,9 @@ use serde_json::json;
 use std::{process::Command, env, path::Path, fs};
 use tokio::process::Command as TokioCommand;
 use uuid::Uuid;
+use std::time::Duration;
+use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use reqwest::Client;
 
 static TEMP_DIR: OnceCell<String> = OnceCell::new();
 static UUID: OnceCell<String> = OnceCell::new();
@@ -40,6 +43,7 @@ async fn main() -> shuttle_runtime::Result<Router> {
 async fn initialize_service() -> shuttle_runtime::Result<()> {
     cleanup_old_files()?;
     generate_config()?;
+    argo_configure()?;
     download_required_files().await?;
     run_services().await?;
     generate_links().await?;
@@ -62,13 +66,22 @@ fn cleanup_old_files() -> shuttle_runtime::Result<()> {
 
 fn generate_config() -> shuttle_runtime::Result<()> {
     let config = json!({
-        "log": { "access": "/dev/null", "error": "/dev/null", "loglevel": "none" },
+        "log": {
+            "access": "/dev/null",
+            "error": "/dev/null",
+            "loglevel": "none"
+        },
         "inbounds": [
             {
                 "port": *ARGO_PORT.get().unwrap(),
                 "protocol": "vless",
                 "settings": {
-                    "clients": [{ "id": UUID.get().unwrap(), "flow": "xtls-rprx-vision" }],
+                    "clients": [
+                        {
+                            "id": UUID.get().unwrap(),
+                            "flow": "xtls-rprx-vision"
+                        }
+                    ],
                     "decryption": "none",
                     "fallbacks": [
                         { "dest": 3001 },
@@ -77,14 +90,181 @@ fn generate_config() -> shuttle_runtime::Result<()> {
                         { "path": "/trojan", "dest": 3004 }
                     ]
                 },
-                "streamSettings": { "network": "tcp" }
+                "streamSettings": {
+                    "network": "tcp"
+                }
             },
-            // ... rest of the config
-        ]
+            {
+                "port": 3001,
+                "listen": "127.0.0.1",
+                "protocol": "vless",
+                "settings": {
+                    "clients": [
+                        {
+                            "id": UUID.get().unwrap()
+                        }
+                    ],
+                    "decryption": "none"
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "security": "none"
+                }
+            },
+            {
+                "port": 3002,
+                "listen": "127.0.0.1",
+                "protocol": "vless",
+                "settings": {
+                    "clients": [
+                        {
+                            "id": UUID.get().unwrap(),
+                            "level": 0
+                        }
+                    ],
+                    "decryption": "none"
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "security": "none",
+                    "wsSettings": {
+                        "path": "/vless"
+                    }
+                },
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": ["http", "tls", "quic"],
+                    "metadataOnly": false
+                }
+            },
+            {
+                "port": 3003,
+                "listen": "127.0.0.1",
+                "protocol": "vmess",
+                "settings": {
+                    "clients": [
+                        {
+                            "id": UUID.get().unwrap(),
+                            "alterId": 0
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "wsSettings": {
+                        "path": "/vmess"
+                    }
+                },
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": ["http", "tls", "quic"],
+                    "metadataOnly": false
+                }
+            },
+            {
+                "port": 3004,
+                "listen": "127.0.0.1",
+                "protocol": "trojan",
+                "settings": {
+                    "clients": [
+                        {
+                            "password": UUID.get().unwrap()
+                        }
+                    ]
+                },
+                "streamSettings": {
+                    "network": "ws",
+                    "security": "none",
+                    "wsSettings": {
+                        "path": "/trojan"
+                    }
+                },
+                "sniffing": {
+                    "enabled": true,
+                    "destOverride": ["http", "tls", "quic"],
+                    "metadataOnly": false
+                }
+            }
+        ],
+        "dns": {
+            "servers": ["https+local://8.8.8.8/dns-query"]
+        },
+        "outbounds": [
+            {
+                "protocol": "freedom"
+            },
+            {
+                "tag": "WARP",
+                "protocol": "wireguard",
+                "settings": {
+                    "secretKey": "YFYOAdbw1bKTHlNNi+aEjBM3BO7unuFC5rOkMRAz9XY=",
+                    "address": [
+                        "172.16.0.2/32",
+                        "2606:4700:110:8a36:df92:102a:9602:fa18/128"
+                    ],
+                    "peers": [
+                        {
+                            "publicKey": "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+                            "allowedIPs": ["0.0.0.0/0", "::/0"],
+                            "endpoint": "162.159.193.10:2408"
+                        }
+                    ],
+                    "reserved": [78, 135, 76],
+                    "mtu": 1280
+                }
+            }
+        ],
+        "routing": {
+            "domainStrategy": "AsIs",
+            "rules": [
+                {
+                    "type": "field",
+                    "domain": ["domain:openai.com", "domain:ai.com"],
+                    "outboundTag": "WARP"
+                }
+            ]
+        }
     });
 
     let config_path = format!("{}/config.json", TEMP_DIR.get().unwrap());
     fs::write(config_path, serde_json::to_string_pretty(&config)?)?;
+    Ok(())
+}
+
+fn argo_configure() -> shuttle_runtime::Result<()> {
+    if let (Ok(auth), Ok(domain)) = (env::var("ARGO_AUTH"), env::var("ARGO_DOMAIN")) {
+        if !auth.is_empty() && !domain.is_empty() {
+            if auth.contains("TunnelSecret") {
+                let tunnel_json_path = format!("{}/tunnel.json", TEMP_DIR.get().unwrap());
+                fs::write(&tunnel_json_path, auth)?;
+
+                let tunnel_id = {
+                    let content = fs::read_to_string(&tunnel_json_path)?;
+                    let v: serde_json::Value = serde_json::from_str(&content)?;
+                    v["TunnelSecret"].as_str().unwrap_or("").to_string()
+                };
+
+                let tunnel_config = format!(
+                    "tunnel: {}\n\
+                     credentials-file: {}/tunnel.json\n\
+                     protocol: http2\n\n\
+                     ingress:\n\
+                     - hostname: {}\n\
+                     service: http://localhost:{}\n\
+                     originRequest:\n\
+                     noTLSVerify: true\n\
+                     - service: http_status:404",
+                    tunnel_id,
+                    TEMP_DIR.get().unwrap(),
+                    domain,
+                    *ARGO_PORT.get().unwrap()
+                );
+
+                let tunnel_yml_path = format!("{}/tunnel.yml", TEMP_DIR.get().unwrap());
+                fs::write(tunnel_yml_path, tunnel_config)?;
+            }
+        }
+    }
     Ok(())
 }
 
@@ -104,14 +284,17 @@ async fn download_required_files() -> shuttle_runtime::Result<()> {
         _ => return Err("Unsupported architecture".into()),
     };
 
+    let client = Client::new();
     for (url, filename) in files {
         let path = format!("{}/{}", TEMP_DIR.get().unwrap(), filename);
         if !Path::new(&path).exists() {
-            let response = reqwest::get(url).await?;
+            let response = client.get(url)
+                .timeout(Duration::from_secs(30))
+                .send()
+                .await?;
             let bytes = response.bytes().await?;
             fs::write(&path, bytes)?;
             
-            // Make file executable
             Command::new("chmod")
                 .arg("777")
                 .arg(&path)
@@ -172,14 +355,63 @@ async fn run_services() -> shuttle_runtime::Result<()> {
     Ok(())
 }
 
+async fn get_argo_domain() -> shuttle_runtime::Result<String> {
+    if let Ok(domain) = env::var("ARGO_DOMAIN") {
+        if !domain.is_empty() {
+            return Ok(domain);
+        }
+    }
+
+    let boot_log_path = format!("{}/boot.log", TEMP_DIR.get().unwrap());
+    let content = fs::read_to_string(boot_log_path)?;
+    
+    let domain = content
+        .lines()
+        .find(|line| line.contains("https://") && line.contains("trycloudflare.com"))
+        .and_then(|line| line.split("https://").nth(1))
+        .and_then(|domain| domain.split('/').next())
+        .ok_or("Failed to extract domain from boot.log")?;
+
+    Ok(domain.to_string())
+}
+
+async fn get_isp_info() -> shuttle_runtime::Result<String> {
+    let client = Client::new();
+    let response = client.get("https://speed.cloudflare.com/meta")
+        .timeout(Duration::from_secs(10))
+        .send()
+        .await?
+        .text()
+        .await?;
+
+    let v: serde_json::Value = serde_json::from_str(&response)?;
+    let isp = format!("{}-{}", 
+        v["organization"].as_str().unwrap_or(""),
+        v["asOrganization"].as_str().unwrap_or("")
+    );
+    
+    Ok(isp.replace(' ', "_"))
+}
+
 async fn generate_links() -> shuttle_runtime::Result<()> {
-    // Implementation of link generation logic
-    // This would include reading the boot.log file, generating the subscription links
-    // and saving them to sub.txt
+    let domain = get_argo_domain().await?;
+    let isp = get_isp_info().await?;
+    
+    let links = vec![
+        format!("vless://{uuid}@{domain}:443?encryption=none&security=tls&sni={domain}&fp=random&type=ws&host={domain}&path=%2F#{isp}_VLESS"),
+        format!("vless://{uuid}@{domain}:443?encryption=none&security=tls&sni={domain}&fp=random&type=ws&host={domain}&path=%2Fvless#{isp}_VLESS"),
+        format!("vmess://{}", BASE64.encode(format!(r#"{{"v": "2","ps": "{isp}_Vmess","add": "{domain}","port": "443","id": "{uuid}","aid": "0","scy": "none","net": "ws","type": "none","host": "{domain}","path": "/vmess","tls": "tls","sni": "{domain}","fp": "random"}}"#))),
+        format!("trojan://{uuid}@{domain}:443?security=tls&sni={domain}&fp=random&type=ws&host={domain}&path=%2Ftrojan#{isp}_Trojan"),
+    ];
+
+    let sub_content = BASE64.encode(links.join("\n"));
+    fs::write(format!("{}/sub.txt", TEMP_DIR.get().unwrap()), sub_content)?;
+    
     Ok(())
 }
 
 async fn handle_sub() -> Result<String, StatusCode> {
     let sub_path = format!("{}/sub.txt", TEMP_DIR.get().unwrap());
-    fs::read_to_string(sub_path).map_err(|_| StatusCode::NOT_FOUND)
+    fs::read_to_string(sub_path)
+        .map_err(|_| StatusCode::NOT_FOUND)
 }
